@@ -1,13 +1,13 @@
 // app.js – binder det hele sammen og styrer UI.
 
-import { LOCATIONS, FORECAST_DAYS } from "./config.js";
+import { LOCATIONS, REF_LOCATIONS, FORECAST_DAYS } from "./config.js";
 import { fetchAllWeather } from "./weather.js";
 import { scoreUpcoming, ugedagNavn, toDayKey } from "./scoring.js";
 import { grejFor } from "./grej.js";
 import { fishSVG } from "./fishart.js";
 import { SPECIES } from "./species.js";
 
-const APP_VERSION = "v13"; // synlig i bunden – bump ved hver ændring for at validere opdateringer
+const APP_VERSION = "v19"; // synlig i bunden – bump ved hver ændring for at validere opdateringer
 const CACHE_KEY = "fiskeodds:weather:v1";
 const CACHE_TTL = 1000 * 60 * 60 * 3; // 3 timer
 
@@ -40,9 +40,8 @@ function subColor(v) {
   if (v >= 0.5) return "var(--mid)";
   return "var(--low)";
 }
-function tomorrow() {
+function today() {
   const d = new Date();
-  d.setDate(d.getDate() + 1);
   d.setHours(12, 0, 0, 0);
   return d;
 }
@@ -60,6 +59,13 @@ function vandstandTxt(delta) {
   if (delta > 0.03) return "↑ Stigende";
   if (delta < -0.03) return "↓ Faldende";
   return "→ Stabil";
+}
+// Omdømme-mærkat på en plads (dokumenteret SKØN – påvirker IKKE odds-tallet).
+function repBadge(q) {
+  if (q == null) return "";
+  if (q >= 0.85) return ` <span class="rep rep-top">★ topplads</span>`;
+  if (q >= 0.70) return ` <span class="rep">god plads</span>`;
+  return "";
 }
 function maaneEmoji(illum) {
   if (illum < 0.1) return "🌑";
@@ -86,7 +92,7 @@ function saveCache(weather) {
 }
 
 function recompute() {
-  state.days = scoreUpcoming(state.weather, tomorrow(), Math.min(FORECAST_DAYS - 1, 6));
+  state.days = scoreUpcoming(state.weather, today(), Math.min(FORECAST_DAYS, 7));
   if (state.selected >= state.days.length) state.selected = 0;
 }
 
@@ -94,7 +100,7 @@ async function refresh(force = false) {
   el.refresh.classList.add("spinning");
   setStatus("Henter vejrdata …");
   try {
-    const weather = await fetchAllWeather(LOCATIONS);
+    const weather = await fetchAllWeather(LOCATIONS.concat(REF_LOCATIONS));
     state.weather = weather;
     state.hentet = Date.now();
     saveCache(weather);
@@ -144,10 +150,11 @@ function renderDaystrip() {
   state.days.forEach((day, i) => {
     const top = day.perSpecies[0];
     const pill = document.createElement("button");
-    pill.className = "day-pill" + (i === state.selected ? " active" : "") + (i === 0 ? " tomorrow" : "");
+    pill.className = "day-pill" + (i === state.selected ? " active" : "");
     const dt = day.date;
+    const label = i === 0 ? "Idag" : i === 1 ? "I morgen" : (SHORT_WD[day.ugedag] || day.ugedag);
     pill.innerHTML = `
-      <div class="d-wd">${SHORT_WD[day.ugedag] || day.ugedag}</div>
+      <div class="d-wd">${label}</div>
       <div class="d-dt">${dt.getDate()}/${dt.getMonth() + 1}</div>
       <div class="d-top" style="color:${top ? oddsColor(top.odds) : "var(--muted)"}">
         ${top ? top.odds + "%" : "–"}
@@ -192,7 +199,7 @@ function fishCard(r, day) {
     .slice(0, 3);
   const spotsHtml = spots
     .map((s) => `<div class="spot-row">
-        <span class="spot-name">📍 ${s.locationNavn}</span>
+        <span class="spot-name">📍 ${s.locationNavn}${repBadge(s.spotKvalitet)}</span>
         <span class="spot-bar"><span style="width:${s.odds}%;background:${oddsColor(s.odds)}"></span></span>
         <span class="spot-odds" style="color:${oddsColor(s.odds)}">${s.odds}%</span>
       </div>`)
@@ -240,7 +247,7 @@ function fishCard(r, day) {
       <span class="dot" style="background:${r.farve}"></span>
       <div>
         <div class="fish-name">${r.speciesNavn}</div>
-        <div class="fish-loc">📍 ${r.locationNavn}</div>
+        <div class="fish-loc">${r.bestSpot ? "📍 Bedste plads: " + r.bestSpot.navn : "Forhold for arten i dag"}</div>
       </div>
       <div class="odds-wrap">
         <div style="width:90px">
@@ -417,7 +424,7 @@ function init() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
     const age = Date.now() - (state.hentet || 0);
-    const dayChanged = state.days[0] && state.days[0].dayKey !== toDayKey(tomorrow());
+    const dayChanged = state.days[0] && state.days[0].dayKey !== toDayKey(today());
     if (age > 15 * 60 * 1000 || dayChanged) refresh();
   });
 

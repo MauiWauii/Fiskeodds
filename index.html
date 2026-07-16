@@ -48,17 +48,40 @@
     <details class="legend">
       <summary>Sådan beregnes odds</summary>
       <p>
-        Odds er et <strong>relativt indeks (0–100&nbsp;%)</strong> for hvor godt forholdene passer til hver art
-        i den valgte tidslomme – ikke en bogstavelig fangstsandsynlighed. Det kombinerer
-        <strong>sæson</strong> (måned), <strong>lokationstype</strong>, <strong>tidspunkt/lys</strong> (med vægt på prime skumringsvinduer) og
-        <strong>vejr</strong> (vind &amp; vindstød, på-/fralandsvind, lufttryk-trend, skydække, vandklarhed, nedbør, bølger, strøm og vandtemperatur).
-        Torden/skybrud nedsætter odds for alle arter.
+        Odds er et <strong>relativt indeks (0–100&nbsp;%)</strong> for hvor gode forholdene er for hver art
+        i tidslommen – ikke en bogstavelig fangstsandsynlighed.
       </p>
-      <p class="muted">
-        Vejrdata: Open-Meteo (gratis). Havtemperatur er målt; <strong>søtemperatur er estimeret</strong>
-        (mærket "est." / "~") ud fra 31 dages lufttemperatur-historik, da der ikke findes en gratis
-        sø-temperaturkilde. Artsviden: lystfisk.dk + almindelig DK-erfaring.
-      </p>
+
+      <p class="legend-h">Tre adskilte lag</p>
+      <ul>
+        <li><strong>Art-odds</strong> (det store tal): <strong>kun forhold</strong> (sæson + vejr + tid), beregnet ved et fast reference-punkt – <em>uafhængigt af plads og grej</em>.</li>
+        <li><strong>Pladser:</strong> hver plads har sit eget&nbsp;% ud fra lokale forhold + et omdømme-mærkat (★) fra dokumentation.</li>
+        <li><strong>Grej:</strong> hver metode har sin egen successrate i&nbsp;%.</li>
+      </ul>
+
+      <p class="legend-h">Forhold der indgår i art-odds</p>
+      <ul class="legend-vars">
+        <li><strong>Sæson</strong> – måned, pr. art</li>
+        <li><strong>Lys/tidspunkt</strong> – sol op/ned, vægt på prime skumringsvinduer</li>
+        <li><strong>Vind</strong> + vindstød</li>
+        <li><strong>På-/fralandsvind</strong> – vindretning vs. kystens orientering</li>
+        <li><strong>Lufttryk-trend</strong> – faldende straffer; tryksyge arter vægter mest</li>
+        <li><strong>Skydække</strong></li>
+        <li><strong>Vandklarhed</strong> – estimeret fra nylig vind, bølger og nedbør</li>
+        <li><strong>Nedbør</strong></li>
+        <li><strong>Bølgehøjde</strong> (saltvand)</li>
+        <li><strong>Strøm</strong> – "gang i vandet" (saltvand)</li>
+        <li><strong>Vandstand</strong> – stigende vand (saltvand, svagt signal)</li>
+        <li><strong>Vandtemperatur</strong> – hav målt, sø estimeret</li>
+        <li><strong>Måne-illumination</strong> (svagt signal)</li>
+        <li><strong>Torden/skybrud/sne</strong> – sænker odds for alle arter</li>
+      </ul>
+
+      <p class="legend-h">Data &amp; forbehold</p>
+      <ul class="muted">
+        <li>Vejr &amp; hav: <strong>Open-Meteo</strong> (gratis, ingen nøgle). Havtemp er målt; søtemp er estimeret (~) fra 31 dages lufttemperatur.</li>
+        <li>Pladser &amp; arter: dokumenteret (oceankaj.dk, udeogfiske.dk, fishingindenmark.info m.fl.) + nutidstjek 2024–2025. Spot-omdømmet er et <strong>skøn</strong> og påvirker bevidst ikke art-odds.</li>
+      </ul>
     </details>
   </main>
 

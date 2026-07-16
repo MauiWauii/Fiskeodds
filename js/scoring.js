@@ -260,8 +260,20 @@ function waterTempScore(species, waterTemp) {
 
 // ---------- saml ét resultat for (art, lokation, dag) ----------
 function scoreSpeciesAtLocation(species, weather, dayKey, pocket, monthIdx, moonIllum) {
-  const typeScore = species.typeScore[weather.location.type];
-  if (typeScore === undefined) return null; // arten findes ikke her
+  const loc = weather.location;
+  // Spot-omdømme (SKØN) bruges KUN til:
+  //  (a) medlemskab – findes arten dokumenteret på dette spot? (ellers springes spottet over)
+  //  (b) et omdømme-mærkat på pladsen i UI
+  // Det indgår BEVIDST IKKE i odds-tallet – odds = kun forhold (sæson × vejr × tid).
+  let spotKvalitet;
+  if (loc.arter) {
+    if (loc.arter[species.id] == null) return null; // ikke dokumenteret på dette spot
+    spotKvalitet = loc.arter[species.id];
+  } else {
+    const typeScore = species.typeScore[loc.type];
+    if (typeScore === undefined) return null;
+    spotKvalitet = typeScore * (loc.kvalitet ?? 1);
+  }
 
   const season = species.monthWeight[monthIdx] ?? 0;
 
@@ -308,12 +320,11 @@ function scoreSpeciesAtLocation(species, weather, dayKey, pocket, monthIdx, moon
   }
   const weatherComposite = wtot > 0 ? wsum / wtot : 0.7;
   const tScore = timeScore(species, points, weather.sun);
-  const kvalitet = weather.location.kvalitet ?? 1; // lokal spot-kvalitet (default neutral)
   const gate = severeWeatherGate(points);           // torden/skybrud/sne lukker fiskeriet
 
-  // endelig odds
+  // endelig odds = KUN forhold (sæson × vejr-gate × vejr × tid). Intet spot-skøn.
   const odds = Math.round(
-    100 * season * typeScore * kvalitet * gate * (0.45 + 0.55 * weatherComposite) * (0.5 + 0.5 * tScore)
+    100 * season * gate * (0.45 + 0.55 * weatherComposite) * (0.5 + 0.5 * tScore)
   );
 
   // aggregeret vejr til visning
@@ -345,7 +356,7 @@ function scoreSpeciesAtLocation(species, weather, dayKey, pocket, monthIdx, moon
     locationType: weather.location.type,
     odds: clamp(odds, 0, 100),
     season,
-    typeScore,
+    spotKvalitet,
     weatherComposite,
     timeScore: tScore,
     subs,
@@ -363,25 +374,41 @@ export function scoreDay(allWeather, date) {
   const monthIdx = date.getMonth() + 1;
   const moon = moonInfo(date);
 
+  // Adskil rigtige fiskepladser fra reference-lokationer.
+  const spots = allWeather.filter((w) => !w.error && !w.location.ref);
+  const refKyst = allWeather.find((w) => !w.error && w.location.id === "ref-kyst");
+  const refSo = allWeather.find((w) => !w.error && w.location.id === "ref-so");
+
+  // Per-plads-resultater (forhold pr. dokumenteret spot) – til "Bedste pladser"-listen.
   const all = [];
   for (const species of SPECIES) {
-    for (const weather of allWeather) {
-      if (weather.error) continue;
+    for (const weather of spots) {
       const r = scoreSpeciesAtLocation(species, weather, dayKey, pocket, monthIdx, moon.illum);
       if (r) all.push(r);
     }
   }
 
-  // bedste lokation pr. art
-  const bySpecies = new Map();
-  for (const r of all) {
-    const cur = bySpecies.get(r.speciesId);
-    if (!cur || r.odds > cur.odds) bySpecies.set(r.speciesId, r);
+  // OVERORDNET art-odds = rene forhold ved reference-habitat (UAFHÆNGIGT af pladser/skøn/grej).
+  const perSpecies = [];
+  for (const species of SPECIES) {
+    const ref = FRESH.has(species.id) ? refSo : refKyst;
+    if (!ref) continue;
+    const head = scoreSpeciesAtLocation(species, ref, dayKey, pocket, monthIdx, moon.illum);
+    if (!head) continue;
+    // bedste dokumenterede plads (kun til visnings-hint): sortér på forhold, tie-break omdømme
+    const spotList = all
+      .filter((r) => r.speciesId === species.id)
+      .sort((a, b) => b.odds - a.odds || (b.spotKvalitet ?? 0) - (a.spotKvalitet ?? 0));
+    head.bestSpot = spotList[0] ? { navn: spotList[0].locationNavn, odds: spotList[0].odds } : null;
+    perSpecies.push(head);
   }
-  const perSpecies = [...bySpecies.values()].sort((a, b) => b.odds - a.odds);
+  perSpecies.sort((a, b) => b.odds - a.odds);
 
   return { dayKey, date, ugedag: ugedagNavn(date), pocket, perSpecies, all };
 }
+
+// Ferskvandsarter (overordnet odds beregnes ved sø-reference; resten ved kyst-reference).
+const FRESH = new Set(["aborre", "gedde"]);
 
 // Beregn for flere dage (i morgen + frem).
 export function scoreUpcoming(allWeather, fromDate, days) {

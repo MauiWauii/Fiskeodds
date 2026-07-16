@@ -181,6 +181,16 @@ main { padding: 16px; max-width: 720px; margin: 0 auto; }
 }
 .legend summary { cursor: pointer; font-weight: 600; }
 .legend p { font-size: 13px; line-height: 1.5; color: var(--text); }
+.legend-h {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--accent); font-weight: 700; margin: 16px 0 6px;
+}
+.legend ul { margin: 6px 0; padding-left: 18px; }
+.legend li { font-size: 13px; line-height: 1.5; margin: 3px 0; color: var(--text); }
+.legend ul.muted li, .legend ul.muted { color: var(--muted); }
+.legend-vars { columns: 2; column-gap: 20px; }
+.legend-vars li { break-inside: avoid; }
+@media (max-width: 430px) { .legend-vars { columns: 1; } }
 .muted { color: var(--muted); }
 
 .foot { text-align: center; font-size: 12px; padding: 14px; }
@@ -293,6 +303,16 @@ main { padding: 16px; max-width: 720px; margin: 0 auto; }
   align-items: center; gap: 10px; font-size: 13px;
 }
 .spot-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rep {
+  font-size: 10px; font-weight: 600;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 5px;
+  margin-left: 2px;
+  white-space: nowrap;
+}
+.rep-top { color: #04212a; background: var(--accent); border-color: transparent; }
 .spot-bar { height: 6px; border-radius: 4px; background: var(--line); overflow: hidden; }
 .spot-bar span { display: block; height: 100%; border-radius: 4px; }
 .spot-odds { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
